@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# Start the app. No arguments needed:
+#
+#   ./run            open the app (data stays in your browser)
+#   ./run --server   also start the optional API + MongoDB backend
+#   ./run --test     run every test
+#   ./run --build    produce a static build in frontend/dist
+#
+set -euo pipefail
+cd "$(dirname "$0")"
+
+BLUE='\033[36m'; DIM='\033[2m'; BOLD='\033[1m'; OFF='\033[0m'
+say() { printf "${BLUE}▸${OFF} %b\n" "$1"; }
+
+command -v node >/dev/null || { echo "Node.js 20+ is required: https://nodejs.org"; exit 1; }
+NODE_MAJOR=$(node -p 'process.versions.node.split(".")[0]')
+[ "$NODE_MAJOR" -ge 20 ] || { echo "Node.js 20+ is required (found $(node -v))."; exit 1; }
+
+install_if_needed() {
+  if [ ! -d node_modules ]; then
+    say "Installing dependencies (first run only)…"
+    npm install --silent
+  fi
+}
+
+case "${1:-}" in
+  --test)
+    install_if_needed
+    say "Running tests…"
+    npm test --workspaces --if-present
+    exit 0
+    ;;
+  --build)
+    install_if_needed
+    say "Building…"
+    npm run build
+    say "Static site is in ${BOLD}frontend/dist${OFF} — open index.html or host the folder anywhere."
+    exit 0
+    ;;
+  --server)
+    install_if_needed
+    if [ ! -f backend/.env ]; then
+      cp backend/.env.example backend/.env
+      say "Created ${BOLD}backend/.env${OFF} — edit it to point at a different MongoDB."
+    fi
+
+    # Port 27018, not the default 27017, so an existing MongoDB on this machine
+    # is never touched and never has to be shut down.
+    if ! (echo > /dev/tcp/127.0.0.1/27018) >/dev/null 2>&1; then
+      if command -v docker >/dev/null; then
+        say "Starting MongoDB in Docker on :27018…"
+        docker start macro-tracker-mongo >/dev/null 2>&1 ||
+          docker run -d --name macro-tracker-mongo -p 27018:27017 \
+            -v macro-tracker-data:/data/db mongo:7 >/dev/null
+        until (echo > /dev/tcp/127.0.0.1/27018) >/dev/null 2>&1; do sleep 0.5; done
+      else
+        echo "Nothing is listening on port 27018 and Docker is not installed."
+        echo "Point MONGODB_URI in backend/.env at your own MongoDB, or just run"
+        echo "'./run' — the app works fully without any server."
+        exit 1
+      fi
+    fi
+
+    say "Starting API on :5001 and app on :5173…"
+    # The app talks to /api, which Vite proxies to the backend, so no CORS setup.
+    npm run dev:server & SERVER_PID=$!
+    trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+    VITE_API_URL=/api npm run dev
+    exit 0
+    ;;
+  -h|--help)
+    sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'
+    exit 0
+    ;;
+esac
+
+install_if_needed
+printf "${DIM}Data is saved in your browser. Run './run --server' if you want the optional API.${OFF}\n"
+say "Starting on ${BOLD}http://localhost:5173${OFF} — press Ctrl+C to stop."
+npm run dev

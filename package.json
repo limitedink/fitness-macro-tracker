@@ -1,0 +1,17 @@
+{
+  "name": "fitness-macro-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Track daily calories and macronutrients against a target you set once.",
+  "workspaces": ["frontend", "backend"],
+  "scripts": {
+    "dev": "npm run dev --workspace @macro-tracker/frontend",
+    "dev:server": "npm run dev --workspace @macro-tracker/backend",
+    "build": "npm run build --workspace @macro-tracker/frontend",
+    "preview": "npm run preview --workspace @macro-tracker/frontend",
+    "test": "npm run test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

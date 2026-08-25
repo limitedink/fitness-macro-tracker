@@ -1,13 +1,26 @@
 # Local configuration and secrets
 **/.env
 **/.env.*
-!.env.example
+!**/.env.example
 
 # Installed dependencies
-**/node_modules/
+node_modules/
 
-# macOS metadata
-**/.DS_Store
+# Build output
+frontend/dist/
+frontend/dev-dist/
 
-# Source repository metadata moved from the old frontend checkout
-frontend/.git.source-backup/
+# Test and tooling caches
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Editor and OS metadata
+.DS_Store
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code local helpers
+.claude/

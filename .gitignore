@@ -1,0 +1,13 @@
+# Local configuration and secrets
+**/.env
+**/.env.*
+!.env.example
+
+# Installed dependencies
+**/node_modules/
+
+# macOS metadata
+**/.DS_Store
+
+# Source repository metadata moved from the old frontend checkout
+frontend/.git.source-backup/
